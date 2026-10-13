@@ -144,3 +144,66 @@ Lessons 11-21: OC, Appositives, Independent words, Participles(+absolute), Gerun
       ('baseline-cards-v1'); reset clears it; home links to it.
 - [x] Tests: cards_suite (360, 1280), nav test, layout audit of card states (0 warnings).
 - [x] Full suite green (layout ok; builder timing fix: Done draws before close), shipped to outputs.
+
+## 2026-10-13 SOURCE PACKAGE
+- [x] README.md, OFL.txt (font license), .gitignore; tools use paths relative to the project; build.py writes
+      dist/index.html (tests) and index.html (GitHub Pages). Obsolete one-off scripts (tools/patches, smoke, timing,
+      mutate2) left out of the package.
+- [x] outputs/baseline-source.zip (24 files): a fresh unzip rebuilds an index.html byte-identical to the shipped one,
+      and logic, ste, and contrast pass from it.
+
+## 2026-10-13 ADJECTIVE COMMAS (lesson 2)
+- [x] User: the old text ("describe a noun equally", "must stay in their order") left too much unstated.
+- [x] Sources checked: Reed & Kellogg 1877 (tests/reed-kellogg-1877.txt) Lesson 12 footnote ("That old wooden house":
+      each adjective limits the noun as the words after it modify it), Lesson 13 ("A tall, straight, dignified
+      person" vs "Two honest young men": "and may be supplied"), Lesson 21 comma rule ("The old oaken bucket": no
+      comma, no conjunction omitted); Purdue OWL (both tests, never a comma between the final adjective and the noun);
+      CMOS 6.36 via CMOS Shop Talk (the "and" test and the order test; a noun that forms a unit of meaning);
+      Macmillan Writer's Help ("No comma between cumulative adjectives"); Cambridge adjective order.
+- [x] Lesson 2: "Commas between adjectives" = 7 numbered steps (find the noun; never after a/an/the/my/this/two/some;
+      never before the noun; the "and" test and the order test at each other place; both yes = comma), 3 worked
+      examples (long cold winter, little red car, hot bright summer sun), why (coordinate vs cumulative, R&K "rank"),
+      a shortcut (color, country, material, noun as adjective), the diagram note. "Yesterday," has its own heading.
+- [x] TERMS: coordinate adjectives, cumulative adjectives (flash cards). COMMA: coord/cumul state both tests; new rules
+      det and adjNoun (COMMA_NAMES, GUIDE_COMMAS). New lesson 2 sentences: boat, pines, sunhot; winter has det/adjNoun traps.
+- [x] Builder: "little" is not a determiner any more; det/adjNoun notes when a noun has two or more adjectives; adjWhy()
+      explains an extra mark after "the" or before the noun anywhere (rules.why); the job dialog shows the two tests with
+      the words of the sentence ("long and cold winter" / "cold long winter"): Both sound correct (comma) / Not both.
+- [x] Lesson and challenge comma steps: an extra mark that the data does not name gets the builder's rule (autoWhy).
+- [x] Tests: builder suite (dialog tests, answers, comma after "The"), functional (extra commas in "chew" get cumul and
+      det), layout audit of the winter dialog.
+
+## 2026-10-13 ADJECTIVE COMMAS: THE DEFINITION (lesson 2, second pass)
+- [x] User: the tests still feel like "feel"; is coordinate defined anywhere? Research:
+      Quirk et al. 1985: 1340 (zones: precentral non-gradable, central gradable, postcentral colour and participles,
+      prehead provenance/denominal/nouns; no coordination of premodifiers from different categories, via Pastor
+      Gomez 2009); Feist 2011 (CUP): Reinforcer > Epithet > Descriptor > Classifier zones, "multiple premodifiers
+      within one zone are co-ordinated", "earlier words modify all the later words as a group"; Sproat & Shih 1991
+      (order restrictions only for hierarchical modifiers; comma intonation = parallel, free order); Matthews 2014
+      (each dependent forms a binary constituent with what follows); Payne 2025 (CGEL-style labile order Evaluative >
+      General Property > Age > Colour > Provenance > Manufacture > Type); Scontras et al. 2017 (less subjective
+      adjectives nearer the noun); AP Stylebook ("equal in rank"; "integral element of a noun phrase").
+- [x] Lesson 2 rule: look at the second adjective of each pair: shape, age, color, origin, material, or type = no
+      comma; opinion, size, or quality = comma (plus no comma after a/the/my/two and none before the noun). Group
+      list, examples, why (unit vs. each alone), the few exceptions (nice big, little girl, two colors), the tests
+      as a check. All 18 adjective pairs of the app's sentences agree, after "hungry little puppy" -> "hungry brown
+      puppy" (chew).
+- [x] COMMA coord/cumul, COMMA_NAMES, GUIDE_COMMAS, TERMS use the groups. Builder: B_FACT groups + capital letter =
+      origin; coordOf() gives "no comma" before known group words (a comma between two words of one group) and asks
+      about the others; the dialog shows the rule and the two tests with the sentence's words.
+- [x] Tests: builder suite checks the groups (little, red / Italian / red, white / cold asks).
+
+## 2026-10-13 ADJECTIVE COMMAS: JUDGMENT WORDS AND FACT WORDS; ZIP UPLOAD WORKFLOW
+- [x] Lesson 2 uses the plain terms from the explanation: judgment words (opinion, size, quality; two people can
+      disagree) and fact words (shape, age, color, origin, material, type; they sort the thing into a kind); three
+      zones ("the"/"my", judgment words, fact words nearest the noun); the "can two people disagree?" test; "dark"
+      night vs. "dark" coat; age as a fact word; the and/order tests; a 7-adjective example. TERMS: judgment word,
+      fact word (flash cards); COMMA coord/cumul, COMMA_NAMES, GUIDE_COMMAS, builder dialog use the terms.
+- [x] New practice sentence sportscar: "A beautiful, expensive, fast new red Italian sports car stopped suddenly."
+- [x] tools/zip-upload.yml: GitHub Actions workflow (checkout v7, upload-pages-artifact v5, deploy-pages v5; Node 24).
+      On any push to main: unpack each uploaded zip over the repo (tar, never deletes, skips .git/.github, unwraps
+      one wrapper folder like baseline-source/), remove the zip, python3 build.py, commit "new bulk zip upload
+      updated codebase" (or "rebuild index.html from the source files"), deploy _site/index.html to Pages. Pages
+      source must be "GitHub Actions": GITHUB_TOKEN pushes do not trigger branch Pages builds (GitHub docs).
+      Simulated locally with a bare remote (scratchpad/wftest.sh): zip upload, no zip, a flat zip with one folder.
+- [x] README: one-time setup and upload steps; .gitignore: _site/.

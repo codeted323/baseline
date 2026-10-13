@@ -367,6 +367,8 @@ select {
 .bd-ctx { color: var(--muted); margin: 2px 0 8px; }
 .bd-ctx mark { background: var(--accent-soft); color: var(--ink); font-weight: 700; padding: 0 3px; border-radius: 4px; }
 .bd-h3 { font-size: 16px; margin: 14px 0 6px; color: var(--muted); }
+.bd-tests { margin: 0 0 8px; padding-left: 1.25em; }
+.bd-tests li { margin: 2px 0; }
 .bd-jobs, .bd-words { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip.bd-job, .chip.bd-opt, .chip.bd-w { font-size: 16px; padding: 0 12px; }
 .chip.bd-w { border-color: var(--line); color: var(--muted); }
@@ -547,7 +549,13 @@ const SENT = {
   rain:      { s: 'Rain fell softly.', S: W('Rain'), V: W('fell', 'softly') },
   walk:      { s: 'Walk very slowly.', S: YOU(), V: W('Walk', W('slowly', 'very')) },
   tallman:   { s: 'The very tall man smiled.', S: W('man', 'The', W('tall', 'very')), V: W('smiled') },
-  winter:    { s: 'The long, cold winter finally ended.', S: W('winter', 'The', 'long', 'cold'), V: W('ended', 'finally'), cm: { long: 'coord' } },
+  winter:    { s: 'The long, cold winter finally ended.', S: W('winter', 'The', 'long', 'cold'), V: W('ended', 'finally'), cm: { long: 'coord' }, trap: { The: 'det', cold: 'adjNoun' } },
+  boat:      { s: 'An old wooden boat sank slowly.', S: W('boat', 'An', 'old', 'wooden'), V: W('sank', 'slowly'), trap: { An: 'det', old: 'cumul', wooden: 'adjNoun' } },
+  pines:     { s: 'Two tall pine trees swayed gently.', S: W('trees', 'Two', 'tall', 'pine'), V: W('swayed', 'gently'), trap: { Two: 'det', tall: 'cumul', pine: 'adjNoun' } },
+  sportscar: { s: 'A beautiful, expensive, fast new red Italian sports car stopped suddenly.', S: W('car', 'A', 'beautiful', 'expensive', 'fast', 'new', 'red', 'Italian', 'sports'),
+    V: W('stopped', 'suddenly'), cm: { beautiful: 'coord', expensive: 'coord' }, trap: { A: 'det', fast: 'cumul', new: 'cumul', red: 'cumul', Italian: 'cumul', sports: 'adjNoun' } },
+  sunhot:    { s: 'The hot, bright summer sun shone fiercely.', S: W('sun', 'The', 'hot', 'bright', 'summer'), V: W('shone', 'fiercely'),
+    cm: { hot: 'coord' }, trap: { The: 'det', bright: 'cumul', summer: 'adjNoun' } },
 
   will:      { s: 'We will win.', S: W('We'), V: VB('will win') },
   wasbaby:   { s: 'Was the baby sleeping?', S: W('baby', 'the'), V: VB('Was sleeping') },
@@ -557,7 +565,7 @@ const SENT = {
   painting:  { s: 'We are painting the fence.', S: W('We'), V: VB('are painting'), DO: W('fence', 'the') },
   didlock:   { s: 'Did you lock the back door?', S: W('you'), V: VB('Did lock'), DO: W('door', 'the', 'back') },
   spicy:     { s: 'My older brother has cooked a very spicy meal.', S: W('brother', 'My', 'older'), V: VB('has cooked'), DO: W('meal', 'a', W('spicy', 'very')) },
-  chew:      { s: 'The hungry little puppy was happily chewing my new shoe.', S: W('puppy', 'The', 'hungry', 'little'), V: VB('was chewing', 'happily'), DO: W('shoe', 'my', 'new'), trap: { chewing: 'vo' } },
+  chew:      { s: 'The hungry brown puppy was happily chewing my new shoe.', S: W('puppy', 'The', 'hungry', 'brown'), V: VB('was chewing', 'happily'), DO: W('shoe', 'my', 'new'), trap: { chewing: 'vo' } },
 
   seem:      { s: 'The children seem tired.', S: W('children', 'The'), V: W('seem'), PA: W('tired') },
   isnurse:   { s: 'Is your sister a nurse?', S: W('sister', 'your'), V: W('Is'), PN: W('nurse', 'a') },
@@ -907,12 +915,43 @@ const LESSONS = [
       ] },
       { ex: 'verybird' },
       { p: 'An adverb can also modify a different adverb, as in “walk very slowly.” The diagram uses the same short line below the slanted line of the adverb.' },
-      { h: 'Commas' },
-      { p: 'Two adjectives can describe a noun equally. Then a comma goes between them: “a long, cold winter.” Test: you can put “and” between them, or change their order.' },
-      { p: 'Other adjectives must stay in their order. They do not take a comma: “the little red car.”' },
+      { h: 'Commas between adjectives' },
+      { p: 'A noun can have two or more adjectives in front of it. A comma between two of them takes the place of “and.” To find the commas, sort the adjectives into [[judgment words|judgment word]] and [[fact words|fact word]].' },
+      { ul: [
+        'A judgment word tells opinion, size, or quality, like “beautiful,” “long,” “dark,” or “cold.” Two people can look at the same thing and disagree about it.',
+        'A fact word tells shape, age, color, origin, material, or type, like “round,” “old,” “red,” “Italian,” “wooden,” or “summer.” It sorts the thing into a kind.',
+      ] },
+      { p: 'The words in front of a noun go in three zones, in this order: words like “the” or “my,” then judgment words, then fact words. The fact words stay nearest the noun.' },
+      { h: 'Where the commas go' },
+      { ol: [
+        'Find the noun and the adjectives in front of it.',
+        'Do not put a comma after a, an, the, or a word like my, this, two, or some.',
+        'Do not put a comma between the last adjective and the noun.',
+        'Now look at each pair of adjectives after those first words. Look at the second word of the pair.',
+        'Is it a judgment word? Then put a comma before it.',
+        'Is it a fact word? Then do not put a comma before it.',
+      ] },
+      { h: 'Examples' },
+      { ul: [
+        'Start with “a long cold winter.” “Cold” is a judgment word, so write “a long, cold winter.”',
+        'Start with “the little red car.” “Red” is a fact word, so do not put a comma.',
+        'Start with “the hot bright summer sun.” “Bright” is a judgment word, so a comma goes after “hot.” “Summer” is a fact word, so no comma goes after “bright.” The result is “the hot, bright summer sun.”',
+        'Start with “a beautiful expensive fast new red Italian sports car.” It has three judgment words and then four fact words. Commas go only between the judgment words: “a beautiful, expensive, fast new red Italian sports car.”',
+      ] },
+      { h: 'When you are not sure' },
+      { p: 'Ask: can two people look at the same thing and disagree about this word? If yes, it is a judgment word. If no, it is a fact word.' },
+      { p: 'One word can change kind. “Dark” in “a long, dark night” tells how much light there is, so it is a judgment word. In “a long dark coat,” it tells a color.' },
+      { p: 'Age words are fact words, but people can disagree about them. English uses them to sort things, like “an old car” and “a new car.”' },
+      { p: 'You can also do two tests. Put “and” between the two adjectives, and then change their order. Both versions sound correct only before a judgment word.' },
+      { h: 'Why the rule works' },
+      { p: 'A fact word joins with the words after it into one unit, like “red car” or “summer sun.” The word before the unit describes all of it. These are [[cumulative adjectives]]. They keep a fixed order: “a new red car,” not “a red new car.”' },
+      { p: 'Judgment words do not make a unit. Each one describes the noun alone: the winter is long, and the winter is cold. These are [[coordinate adjectives]]. So “and” can go between them, and their order is free.' },
+      { p: 'A few words break the pattern. In “a nice big check,” the word “nice” only means “very,” so no comma goes after it. In “a sweet little girl,” the words “little girl” work as one name. Two words of one group, like two colors, take “and”: “a red and white flag.”' },
+      { p: 'The diagram does not show the comma. With or without a comma, each adjective goes on its own slanted line below the noun.' },
+      { h: 'A short word at the start' },
       { p: 'After one short word at the start of a sentence, like “Yesterday,” the comma is optional.' },
     ],
-    practice: ['olddog', 'rain', 'frog', 'walk', 'tallman', 'winter', 'oldcar'],
+    practice: ['olddog', 'rain', 'frog', 'walk', 'tallman', 'winter', 'boat', 'pines', 'sunhot', 'sportscar', 'oldcar'],
   },
   {
     title: 'Helping verbs',
@@ -1417,6 +1456,10 @@ const TERMS = {
   'modifier': ['Modifier', 'A modifier gives more information about a different word. Adjectives and adverbs are modifiers.'],
   'adjective': ['Adjective', 'An adjective modifies a noun or a pronoun. It tells which one, what kind, or how many.'],
   'article': ['Article', 'The words a, an, and the are articles. Articles are adjectives.'],
+  'judgment word': ['Judgment word', 'A judgment word is an adjective that tells an opinion, a size, or a quality, like “beautiful,” “long,” or “dark.” Two people can look at the same thing and disagree about it.'],
+  'fact word': ['Fact word', 'A fact word is an adjective that tells a shape, an age, a color, an origin, a material, or a type, like “red” or “wooden.” It sorts the thing into a kind.'],
+  'coordinate adjectives': ['Coordinate adjectives', 'Coordinate adjectives are judgment words before one noun. Each one describes the noun alone, so “and” can go between them, and their order is free. A comma goes between them: “a long, cold winter.”'],
+  'cumulative adjectives': ['Cumulative adjectives', 'Each cumulative adjective describes all the words after it. A fact word joins with the noun into one unit, as in “the little red car.” No comma goes before a fact word.'],
   'adverb': ['Adverb', 'An adverb modifies a verb, an adjective, or a different adverb. It tells how, when, where, or to what extent.'],
   'direct object': ['Direct object', 'The direct object receives the action of the verb. It answers “what?” or “whom?” after the subject and the verb.'],
   'linking verb': ['Linking verb', 'A linking verb connects the subject to a word that renames or describes the subject. Examples are is, are, was, were, seem, and become.'],
@@ -1494,11 +1537,13 @@ const COMMA = {
   introShort: 'After a short word or phrase at the start of a sentence, the comma is optional.',
   series:     'Put commas between three or more parts of a series.',
   serial:     'The comma before the conjunction in a series is the serial comma. Chicago style uses it, but some news styles do not.',
-  coord:      'Put a comma between two adjectives that describe the noun equally. Test: you can put “and” between them.',
+  coord:      'Put a comma before a judgment word that follows a different adjective. A judgment word tells an opinion, a size, or a quality.',
   sv:         'Do not put a comma between the subject and its verb, even after a long subject.',
   vo:         'Do not put a comma between a verb and its object.',
   pair:       'Do not put a comma between the two parts of a compound.',
-  cumul:      'Do not put a comma between adjectives that must stay in their order.',
+  cumul:      'Do not put a comma before a fact word: a word that tells shape, age, color, origin, material, or type.',
+  det:        'Do not put a comma after a, an, the, or a word like my, this, two, or some.',
+  adjNoun:    'Do not put a comma between the last adjective and the noun.',
   none:       'No rule calls for a mark here.',
   apNon:      'Put commas around an appositive that adds extra information. An appositive that tells which one takes no commas.',
   addr:       'Put commas around a noun of direct address.',
@@ -1528,7 +1573,9 @@ const GUIDE_COMMAS = [
   'Put a comma before and, but, or, so, or yet when it joins two clauses.',
   'Put a comma after a phrase of five or more words at the start of a sentence. After a shorter phrase, the comma is optional.',
   'Put commas between three or more parts of a series.',
-  'Put a comma between two adjectives that describe the noun equally.',
+  'Put a comma before a judgment word (an opinion, a size, or a quality) after a different adjective.',
+  'Do not put a comma before a fact word: shape, age, color, origin, material, or type.',
+  'Do not put a comma after a, an, or the, or between the last adjective and the noun.',
   'Do not put a comma between the subject and its verb.',
   'Do not put a comma between a verb and its object or complement.',
   'Do not put a comma between the two parts of a compound.',
@@ -1838,16 +1885,20 @@ Object.assign(UI, {
   bWarnN: '{n} things to look at again.',
   bMarksTitle: 'Commas and semicolons',
   bMarksLater: 'The app checks the marks when the structure has no problems.',
-  bAsk: 'Can “and” go between “{a}” and “{b}”? Answer in the job of “{b}.”',
+  bAsk: 'A comma after “{a}”? Select “{b}” and answer the comma question.',
   bJobTitle: 'Job',
   bClauseQ: 'What does its clause do?',
   bSlotQ: 'What does it do in the sentence?',
   bExtraQ: 'Does it tell which one?',
   bExtraYes: 'Extra information (commas)',
   bExtraNo: 'Tells which one (no commas)',
-  bCoordQ: 'Can “and” go between “{a}” and “{b}”?',
-  bYes: 'Yes',
-  bNo: 'No',
+  bCoordQ: 'A comma between “{a}” and “{b}”?',
+  bCoordT1: 'A judgment word (an opinion, a size, or a quality) takes a comma before it.',
+  bCoordT2: 'A fact word (a shape, an age, a color, an origin, a material, or a type) takes no comma.',
+  bCoordT4: 'Not sure? Can two people disagree about “{b}” here? Then it is a judgment word.',
+  bCoordT3: 'Or test: a comma goes there if “{a} and {b} {n}” and “{b} {a} {n}” both sound correct.',
+  bCoordYes: 'Comma',
+  bCoordNo: 'No comma',
   bYou: 'Command (the subject “you” is not in the sentence)',
   bDone: 'Done',
   bRemove: 'Remove job',
@@ -1871,11 +1922,13 @@ const COMMA_NAMES = {
   introShort: 'A short word or phrase at the start',
   series: 'Three or more parts in a series',
   serial: 'The last comma of a series, before the conjunction',
-  coord: 'Two adjectives that describe a noun equally',
+  coord: 'Before a judgment word that follows a different adjective',
   sv: 'Between a subject and its verb',
   vo: 'Between a verb and its object',
   pair: 'Between the two parts of a compound',
-  cumul: 'Between adjectives that must stay in their order',
+  cumul: 'Before a fact word: shape, age, color, origin, material, or type',
+  det: 'After a, an, the, my, this, or a number',
+  adjNoun: 'Between the last adjective and the noun',
   apNon: 'An appositive that adds extra information',
   addr: 'A noun of direct address',
   intj: 'A mild interjection, like oh or well',
@@ -3171,12 +3224,41 @@ function explainWord(n) {
      as     slot of a noun clause, gerund or infinitive: 'S' 'DO' 'PN' 'OP' 'AP'; infinitive also 'adj' 'adv'
      extra  appositive, participle, adjective clause: true = extra information (commas)
      you    verb only: a command with the understood subject (you)
-     coord  adjective only: "and" can go between it and the adjective before it
+     coord  adjective only: a comma between it and the adjective before it (true) or not (false). The
+            user's answer; without one, coordOf() decides for known shape, age, color, origin, material,
+            and type words, and asks about the others
    =============================================================== */
 
 const B_WL = s => new Set(s.split(' '));
 const B_ART = B_WL('a an the');
-const B_DET = B_WL('a an the this that these those my your his her its our their whose all any both each either every few many more most much neither no other several some such another enough less little one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty hundred thousand first second third last next');
+/* Words that come first before a noun and never take a comma after them ("little" is not here: in
+   "the little red car" it is an adjective of size). */
+const B_DET =B_WL('a an the this that these those my your his her its our their whose all any both each either every few many more most much neither no other several some such another enough less one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty hundred thousand first second third last next');
+/* Adjectives that tell shape, age, color, material, or type join with the words after them into one unit
+   ("red car"), so no comma goes before them after a different adjective ("the little red car"). A capital
+   letter inside the sentence marks an origin word ("an expensive Italian car"). Most type words are nouns, an
+   open group: the builder asks about the ones that are not here. Two words of one group ("red, white") can
+   take a comma. Sources: Quirk et al. 1985 (premodifier zones), Feist 2011, lesson 2. */
+const B_FACT = {
+  shape: B_WL('round square flat oval circular triangular rectangular straight curved'),
+  age: B_WL('old new young ancient modern antique elderly teenage'),
+  color: B_WL('red orange yellow green blue purple pink brown black white gray grey golden silver maroon scarlet crimson violet'),
+  material: B_WL('wooden wood stone brick brass iron steel gold silk cotton wool woolen leather plastic glass paper metal copper marble'),
+  type: B_WL('summer winter spring autumn morning evening night kitchen school front back garden'),
+};
+function bFactGroup(toks, i) {
+  const w = toks[i].w, lw = w.toLowerCase();
+  for (const [g, set] of Object.entries(B_FACT)) if (set.has(lw)) return g;
+  return i > 0 && /^[A-Z][a-z]/.test(w) ? 'origin' : null;
+}
+/* Comma between adjective y and the adjective before it: the user's answer, else none before a shape, age,
+   color, origin, material, or type word (a comma between two words of one group); null = ask the user. */
+function coordOf(toks, jobs, y) {
+  if (jobs[y].coord != null) return jobs[y].coord;
+  const g = bFactGroup(toks, y);
+  if (!g) return null;
+  return g === bFactGroup(toks, y - 1);
+}
 const B_SUBJ_PRON = B_WL('i he she we they who whoever');
 const B_OBJ_PRON = B_WL('me him us them whom whomever');
 const B_PRON_PAIR = { i: 'me', he: 'him', she: 'her', we: 'us', they: 'them', who: 'whom', whoever: 'whomever',
@@ -3624,8 +3706,9 @@ function canonSpec(sp) {
 }
 
 /* ---------- commas and semicolons from the structure ---------- */
-/* Returns { gaps: Map(gap -> { need, alt, opt, rule }), traps: Map(gap -> rule), asks: [word] }.
-   gap i = after word i. need = the mark that the rule asks for; alt = other marks that are also correct. */
+/* Returns { gaps: Map(gap -> { need, alt, opt, rule }), traps: Map(gap -> rule), asks: [word], why: Map(gap -> rule) }.
+   gap i = after word i. need = the mark that the rule asks for; alt = other marks that are also correct.
+   traps: places with a note "no comma"; why: other places with a rule that explains an extra mark. */
 function commaRules(toks, jobs, end) {
   const n = toks.length, built = specFromJobs(toks, jobs, end), { g, groups } = built, { kids } = g, J = i => jobs[i];
   const gaps = new Map(), traps = new Map(), asks = [], prio = new Map(), tprio = new Map();
@@ -3724,15 +3807,21 @@ function commaRules(toks, jobs, end) {
       else put(sp[k][1], ',', 'serial', 3, { opt: true });
     }
   });
-  // 6. two adjectives before a noun: commas only when "and" can go between them
+  // 6. two adjectives before a noun: a comma before an opinion, size, or quality word; none before a shape,
+  //    age, color, origin, material, or type word (coordOf; the user answers when the builder cannot tell)
   jobs.forEach((Jn, y) => {
     if (!Jn || Jn.j !== 'ADJ' || y === 0 || B_DET.has(lw(y))) return;
     const x = y - 1, p = jobs[x];
     if (!(p && p.j === 'ADJ' && p.to === Jn.to && !B_DET.has(lw(x)) && Jn.to > y)) return;
-    if (Jn.coord === true) put(x, ',', 'coord', 5);
-    else if (Jn.coord === false) trap(x, 'cumul');
+    const c = coordOf(toks, jobs, y);
+    if (c === true) put(x, ',', 'coord', 5);
+    else if (c === false) trap(x, 'cumul');
     else asks.push(y);
   });
+  // no comma after "the" or "my", and none before the noun: a note when the noun has two or more adjectives
+  const why = adjWhy(toks, jobs), nAdj = new Map();
+  jobs.forEach((Jn, i) => { if (Jn && Jn.j === 'ADJ' && Jn.to != null && Jn.to > i && !B_DET.has(lw(i))) nAdj.set(Jn.to, (nAdj.get(Jn.to) || 0) + 1); });
+  why.forEach((rule, i) => { if ((nAdj.get(jobs[i].to) || 0) >= 2) trap(i, rule); });
   // 7. places where a comma is a common mistake
   jobs.forEach((Jn, v) => {
     if (!(Jn && Jn.j === 'V')) return;
@@ -3760,7 +3849,18 @@ function commaRules(toks, jobs, end) {
   // a semicolon before the conjunction is also correct when the clauses have their own commas
   joinGaps.forEach(({ gap, A, B }) => { if (inner(A[0], A[1]) || inner(B[0], B[1])) Object.assign(gaps.get(gap), { alt: [';'], altRule: { ';': 'semiSeries' } }); });
   gaps.forEach((_, gap) => traps.delete(gap));   // a mark that a rule asks for is not a mistake
-  return { gaps, traps, asks };
+  return { gaps, traps, asks, why };
+}
+/* Places where a comma never goes before a noun: after a word like "the," "my," or "two" (det), and between
+   the last adjective and the noun (adjNoun). Returns Map(gap -> rule). The comma steps use it to explain a mark. */
+function adjWhy(toks, jobs) {
+  const out = new Map();
+  jobs.forEach((Jn, i) => {
+    if (!Jn || Jn.j !== 'ADJ' || Jn.to == null || Jn.to <= i || i >= toks.length - 1) return;
+    if (B_DET.has(toks[i].w.toLowerCase())) out.set(i, 'det');
+    else if (Jn.to === i + 1) out.set(i, 'adjNoun');
+  });
+  return out;
 }
 /* Default for "extra information": an adjective clause with "that" tells which one; others add information. */
 function defaultExtra(toks, jobs, e) {
@@ -3780,7 +3880,7 @@ function gradeMarks(toks, rules) {
       else if (m === '' && r.opt) items.push({ i, k: 'opt', need: r.need, rule: r.rule });
       else if (!okMarks.includes(m)) items.push({ i, k: 'wrong', need: r.need, got: m, rule: r.rule });
       else items.push({ i, k: r.opt ? 'opt' : 'good', need: m, rule: m === r.need ? r.rule : (r.altRule[m] || r.rule) });
-    } else if (m) items.push({ i, k: 'extra', got: m, rule: rules.traps.get(i) || 'none' });
+    } else if (m) items.push({ i, k: 'extra', got: m, rule: rules.traps.get(i) || (rules.why && rules.why.get(i)) || 'none' });
     else if (rules.traps.has(i)) items.push({ i, k: 'no', rule: rules.traps.get(i) });
   }
   const bad = items.filter(x => ['missing', 'wrong', 'extra'].includes(x.k));
@@ -4235,6 +4335,18 @@ function gradeCommas(ci, user) {
   });
   return { missing, wrongMark, extra, ok: !missing.size && !wrongMark.size && !extra.size };
 }
+/* A rule for an extra mark that the sentence data does not name: the builder finds it from the jobs of the
+   sentence (for example "no comma after the" or "no comma between the last adjective and the noun"). */
+function autoWhy(sp) {
+  if (!sp._why) {
+    sp._why = new Map();
+    try {
+      const r = jobsFromSpec(sp), rules = r && commaRules(r.toks, r.jobs, r.end);
+      if (rules) { rules.why.forEach((v, k) => sp._why.set(k, v)); rules.traps.forEach((v, k) => sp._why.set(k, v)); }
+    } catch (e) { /* no rule: the general text */ }
+  }
+  return sp._why;
+}
 function renderCommas(focus) {
   const P = PZ, ci = P.ci, res = P.cmRes, last = ci.toks.length - 1, nt = nextTarget(P);
   const words = ci.toks.map((t, i) => {
@@ -4254,7 +4366,7 @@ function renderCommas(focus) {
       const rule = COMMA[ci.rule.get(i)];
       if (res.missing.has(i)) return ['err', fmt(UI.cmAdd, { m: name(i), w: w(i, '.') }), rule];
       if (res.wrongMark.has(i)) return ['err', fmt(UI.cmSwap, { m: name(i), w: w(i), x: MARK_NAME[P.cm.get(i)] }), rule];
-      if (res.extra.has(i)) return ['err', fmt(UI.cmRemove, { m: MARK_NAME[P.cm.get(i)], w: w(i, '.') }), COMMA[ci.trap.get(i) || 'none']];
+      if (res.extra.has(i)) return ['err', fmt(UI.cmRemove, { m: MARK_NAME[P.cm.get(i)], w: w(i, '.') }), COMMA[ci.trap.get(i) || autoWhy(P.sp).get(i) || 'none']];
       if (ci.opt.has(i)) return ['opt', fmt(UI.cmOpt, { m: name(i), w: w(i) }), rule];
       if (ci.req.has(i)) return ['ok', fmt(UI.cmGood, { m: name(i), M: name(i)[0].toUpperCase() + name(i).slice(1), w: w(i) }), rule];
       return ['ok', fmt(UI.cmNo, { w: w(i) }), COMMA[ci.trap.get(i)]];
@@ -4771,7 +4883,11 @@ function renderJobDlg(focusSel) {
     const prev = jobs[i - 1];
     if (J.j === 'ADJ' && prev && prev.j === 'ADJ' && prev.to === J.to && J.to != null && J.to > i
       && !B_DET.has(toks[i].w.toLowerCase()) && !B_DET.has(toks[i - 1].w.toLowerCase())) {
-      body += `<h3 class="bd-h3">${esc(fmt(UI.bCoordQ, { a: toks[i - 1].w, b: toks[i].w }))}</h3><div class="bd-jobs">${pick('coord', 1, UI.bYes, J.coord === true)}${pick('coord', 0, UI.bNo, J.coord === false)}</div>`;
+      const wd = k => (k === 0 ? toks[k].w.toLowerCase() : toks[k].w), ab = { a: wd(i - 1), b: wd(i), n: toks[J.to].w };   // the rule and the two tests with the words of the sentence
+      const c = coordOf(toks, jobs, i);
+      body += `<h3 class="bd-h3" id="bd-coord">${esc(fmt(UI.bCoordQ, ab))}</h3>
+        <ul class="bd-tests">${['bCoordT1', 'bCoordT2', 'bCoordT4', 'bCoordT3'].map(k => `<li>${esc(fmt(UI[k], ab))}</li>`).join('')}</ul>
+        <div class="bd-jobs" role="group" aria-labelledby="bd-coord">${pick('coord', 1, UI.bCoordYes, c === true)}${pick('coord', 0, UI.bCoordNo, c === false)}</div>`;
     }
     const k = linkKind(J);
     if (k) {

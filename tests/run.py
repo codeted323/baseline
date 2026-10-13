@@ -307,7 +307,7 @@ async def layout_suite(browser):
             await page.click('[data-act="show"]'); await page.wait_for_timeout(50)
             report_geom(f"{vp[0]}x{vp[1]} {r} shown", await page.evaluate(GEOM_JS))
             await page.evaluate("localStorage.removeItem('baseline-challenges-v1')")
-        for key in ["rv1", "v12"]:
+        for key in ["rv1", "v12", "winter"]:   # winter: word 2 ("cold") shows the two comma tests
             await page.evaluate(f"localStorage.setItem('baseline-build-v1', JSON.stringify({{ text: window.BASELINE.SENT.{key}.s, jobs: [], started: true, key: '{key}' }}))")
             await page.evaluate("location.hash = '#/build'"); await page.reload(); await page.wait_for_timeout(400)   # the page reads the saved builder at start
             report_geom(f"{vp[0]}x{vp[1]} build {key} no jobs", await page.evaluate(GEOM_JS))
@@ -554,6 +554,16 @@ async def functional_suite(browser):
         await page.click('[data-act="ccheck"]')
         cfb = await page.text_content("#cm-fb")
         if "Add a comma after “loud.”" not in cfb or "joins two clauses" not in cfb: fail(f"{tag}: missing-comma feedback: {cfb}")
+        # an extra comma that the sentence data does not name gets its rule from the word jobs
+        Lc, ic = await page.evaluate("(() => { const Ls = window.BASELINE.LESSONS; for (let L = 0; L < Ls.length; L++) { const i = Ls[L].practice.indexOf('chew'); if (i >= 0) return [L + 1, i + 1]; } })()")
+        await goto(page, f"#/practice/{Lc}/{ic}")
+        await solve(page)
+        ws = await page.evaluate("window.BASELINE.state().ci.toks.map(t => t.w)")
+        await page.click(f'[data-cw="{ws.index("hungry")}"]'); await page.click(f'[data-cw="{ws.index("my")}"]')
+        await page.click('[data-act="ccheck"]')
+        cfb = await page.text_content("#cm-fb")
+        rules = await page.evaluate("window.BASELINE.COMMA")
+        if rules["cumul"] not in cfb or rules["det"] not in cfb: fail(f"{tag}: extra commas without a rule in the data: {cfb}")
         INFO.append(f"{tag}: comma steps checked: {n_comma}")
         await page.reload(); await page.wait_for_timeout(300)
         await goto(page, "#/")
@@ -815,6 +825,36 @@ async def builder_suite(browser):
     mut = await page.evaluate(BUILD_MUT_JS)
     for f in mut["bad"]: fail(f"builder mistake test: {f}")
     INFO.append(f"builder mistakes found: {json.dumps(mut['n'])}")
+    # a shape, age, color, origin, material, or type word: no comma before it, and no question for known words
+    auto = await page.evaluate("""() => { const B = window.BASELINE;
+      const jobs = [{ j: 'ADJ', to: 3 }, { j: 'ADJ', to: 3 }, { j: 'ADJ', to: 3 }, { j: 'S', to: 4 }, { j: 'V' }];
+      const r = s => { const c = B.checkBuild(s, jobs); return [c.grade ? c.grade.bad.map(x => `${x.k}:${x.i}:${x.rule}`).join(' ') : 'no grade', (c.rules ? c.rules.asks : []).join(' ')]; };
+      return { red: r('The little, red car stopped.'), redOk: r('The little red car stopped.'), cold: r('The long cold winter ended.'),
+        origin: r('The fast, Italian car stopped.'), colors: r('The red, white flag waved.') }; }""")
+    want = {"red": ["extra:1:cumul", ""], "redOk": ["", ""], "cold": ["", "2"], "origin": ["extra:1:cumul", ""], "colors": ["", ""]}
+    for k, v in want.items():
+        if auto[k] != v: fail(f"builder: adjective groups {k}: {auto[k]} (want {v})")
+    # two adjectives before a noun: the dialog shows the rule and the two tests with the words of the sentence
+    rules = await page.evaluate("window.BASELINE.COMMA")
+    await page.evaluate("localStorage.setItem('baseline-build-v1', JSON.stringify({ text: window.BASELINE.SENT.winter.s, jobs: [], started: true, key: 'winter' }))")
+    await page.evaluate("location.hash = '#/build'"); await page.reload(); await page.wait_for_timeout(400)
+    await page.click('[data-bact="answer"]'); await page.wait_for_timeout(100)
+    await page.click('#b-words [data-bw="2"]'); await page.wait_for_timeout(100)
+    dlg = await page.text_content("#bd-in")
+    if "“long and cold winter”" not in dlg or "“cold long winter”" not in dlg: fail(f"builder: comma tests not shown: {dlg[:300]}")
+    await page.click('#bd-in [data-bo="coord:0"]'); await page.click('#bd-in [data-bd="done"]')
+    await page.click('[data-bact="check"]')
+    fb = await page.text_content("#b-fb")
+    if "Remove the comma after “long.”" not in fb or rules["cumul"] not in fb: fail(f"builder: 'not both' answer: {fb[:300]}")
+    await page.click('#b-words [data-bw="2"]'); await page.click('#bd-in [data-bo="coord:1"]'); await page.click('#bd-in [data-bd="done"]')
+    await page.click('[data-bact="check"]')
+    fb = await page.text_content("#b-fb")
+    if "No problems found" not in fb: fail(f"builder: 'both' answer: {fb[:300]}")
+    await page.click('[data-bact="edit"]'); await page.fill("#b-text", "The, long, cold winter finally ended."); await page.click('[data-bact="start"]')
+    await page.click('[data-bact="check"]')
+    fb = await page.text_content("#b-fb")
+    if "Remove the comma after “The.”" not in fb or rules["det"] not in fb: fail(f"builder: comma after 'The': {fb[:300]}")
+    await page.evaluate("localStorage.removeItem('baseline-build-v1')")
     for e in page.errors: fail(f"builder page: {e}")
     await ctx.close()
     sent = "The old dog slept on the porch, and the cat watched the birds."

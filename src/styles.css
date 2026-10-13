@@ -350,6 +350,8 @@ select {
 .bd-ctx { color: var(--muted); margin: 2px 0 8px; }
 .bd-ctx mark { background: var(--accent-soft); color: var(--ink); font-weight: 700; padding: 0 3px; border-radius: 4px; }
 .bd-h3 { font-size: 16px; margin: 14px 0 6px; color: var(--muted); }
+.bd-tests { margin: 0 0 8px; padding-left: 1.25em; }
+.bd-tests li { margin: 2px 0; }
 .bd-jobs, .bd-words { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip.bd-job, .chip.bd-opt, .chip.bd-w { font-size: 16px; padding: 0 12px; }
 .chip.bd-w { border-color: var(--line); color: var(--muted); }

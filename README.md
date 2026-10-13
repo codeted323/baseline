@@ -23,7 +23,7 @@ repository. Nothing else is needed to run the site.
 | `tests/run.py` | The test suite (diagram logic, plain-English text rules, contrast, functions, layout at five screen sizes). |
 | `tests/logic.js` | Diagram rules that every sentence must pass (lines do not cross, words do not touch, and so on). |
 | `tests/reed-kellogg-1877.txt` | *Higher Lessons in English* (Reed and Kellogg, 1877), Project Gutenberg text. The source for the diagram rules. |
-| `tools/` | Small helpers: render diagrams to PNG, a quick logic check, a mutation check, a background test run. |
+| `tools/` | Small helpers: render diagrams to PNG, a quick logic check, a mutation check, a background test run, and `zip-upload.yml` (see below). |
 | `PROGRESS.md` | The development log: what was built and checked, step by step. |
 
 ## Change the app
@@ -33,6 +33,22 @@ You need Python 3. Node.js is optional (the build uses it to check the JavaScrip
 1. Edit the files in `src/`.
 2. Run `python3 build.py`. It writes `index.html` here and a copy in `dist/` for the tests.
 3. Upload the new `index.html` (and the changed source files) to the repository.
+
+## Update the site by uploading a zip
+
+`tools/zip-upload.yml` is a GitHub Actions workflow. After a zip upload it unpacks the zip over the repository,
+removes the zip, rebuilds `index.html`, saves one commit ("new bulk zip upload updated codebase"), and publishes
+the site to GitHub Pages. It adds and replaces files, but it never deletes files, and it never changes `.github/`.
+
+One-time setup on github.com:
+
+1. Settings > Actions > General > Workflow permissions: select "Read and write permissions", then Save.
+2. Settings > Pages > Build and deployment > Source: select "GitHub Actions".
+3. Add file > Create new file. Name it `.github/workflows/zip-upload.yml`, paste the text of `tools/zip-upload.yml`,
+   and select Commit changes.
+
+Each update: Add file > Upload files, drop the zip, and select Commit changes. The Actions tab shows the run;
+the site changes about a minute later.
 
 ## Run the tests
 

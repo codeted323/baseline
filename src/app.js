@@ -370,6 +370,18 @@ function gradeCommas(ci, user) {
   });
   return { missing, wrongMark, extra, ok: !missing.size && !wrongMark.size && !extra.size };
 }
+/* A rule for an extra mark that the sentence data does not name: the builder finds it from the jobs of the
+   sentence (for example "no comma after the" or "no comma between the last adjective and the noun"). */
+function autoWhy(sp) {
+  if (!sp._why) {
+    sp._why = new Map();
+    try {
+      const r = jobsFromSpec(sp), rules = r && commaRules(r.toks, r.jobs, r.end);
+      if (rules) { rules.why.forEach((v, k) => sp._why.set(k, v)); rules.traps.forEach((v, k) => sp._why.set(k, v)); }
+    } catch (e) { /* no rule: the general text */ }
+  }
+  return sp._why;
+}
 function renderCommas(focus) {
   const P = PZ, ci = P.ci, res = P.cmRes, last = ci.toks.length - 1, nt = nextTarget(P);
   const words = ci.toks.map((t, i) => {
@@ -389,7 +401,7 @@ function renderCommas(focus) {
       const rule = COMMA[ci.rule.get(i)];
       if (res.missing.has(i)) return ['err', fmt(UI.cmAdd, { m: name(i), w: w(i, '.') }), rule];
       if (res.wrongMark.has(i)) return ['err', fmt(UI.cmSwap, { m: name(i), w: w(i), x: MARK_NAME[P.cm.get(i)] }), rule];
-      if (res.extra.has(i)) return ['err', fmt(UI.cmRemove, { m: MARK_NAME[P.cm.get(i)], w: w(i, '.') }), COMMA[ci.trap.get(i) || 'none']];
+      if (res.extra.has(i)) return ['err', fmt(UI.cmRemove, { m: MARK_NAME[P.cm.get(i)], w: w(i, '.') }), COMMA[ci.trap.get(i) || autoWhy(P.sp).get(i) || 'none']];
       if (ci.opt.has(i)) return ['opt', fmt(UI.cmOpt, { m: name(i), w: w(i) }), rule];
       if (ci.req.has(i)) return ['ok', fmt(UI.cmGood, { m: name(i), M: name(i)[0].toUpperCase() + name(i).slice(1), w: w(i) }), rule];
       return ['ok', fmt(UI.cmNo, { w: w(i) }), COMMA[ci.trap.get(i)]];
@@ -906,7 +918,11 @@ function renderJobDlg(focusSel) {
     const prev = jobs[i - 1];
     if (J.j === 'ADJ' && prev && prev.j === 'ADJ' && prev.to === J.to && J.to != null && J.to > i
       && !B_DET.has(toks[i].w.toLowerCase()) && !B_DET.has(toks[i - 1].w.toLowerCase())) {
-      body += `<h3 class="bd-h3">${esc(fmt(UI.bCoordQ, { a: toks[i - 1].w, b: toks[i].w }))}</h3><div class="bd-jobs">${pick('coord', 1, UI.bYes, J.coord === true)}${pick('coord', 0, UI.bNo, J.coord === false)}</div>`;
+      const wd = k => (k === 0 ? toks[k].w.toLowerCase() : toks[k].w), ab = { a: wd(i - 1), b: wd(i), n: toks[J.to].w };   // the rule and the two tests with the words of the sentence
+      const c = coordOf(toks, jobs, i);
+      body += `<h3 class="bd-h3" id="bd-coord">${esc(fmt(UI.bCoordQ, ab))}</h3>
+        <ul class="bd-tests">${['bCoordT1', 'bCoordT2', 'bCoordT4', 'bCoordT3'].map(k => `<li>${esc(fmt(UI[k], ab))}</li>`).join('')}</ul>
+        <div class="bd-jobs" role="group" aria-labelledby="bd-coord">${pick('coord', 1, UI.bCoordYes, c === true)}${pick('coord', 0, UI.bCoordNo, c === false)}</div>`;
     }
     const k = linkKind(J);
     if (k) {

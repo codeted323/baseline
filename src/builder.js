@@ -12,12 +12,41 @@
      as     slot of a noun clause, gerund or infinitive: 'S' 'DO' 'PN' 'OP' 'AP'; infinitive also 'adj' 'adv'
      extra  appositive, participle, adjective clause: true = extra information (commas)
      you    verb only: a command with the understood subject (you)
-     coord  adjective only: "and" can go between it and the adjective before it
+     coord  adjective only: a comma between it and the adjective before it (true) or not (false). The
+            user's answer; without one, coordOf() decides for known shape, age, color, origin, material,
+            and type words, and asks about the others
    =============================================================== */
 
 const B_WL = s => new Set(s.split(' '));
 const B_ART = B_WL('a an the');
-const B_DET = B_WL('a an the this that these those my your his her its our their whose all any both each either every few many more most much neither no other several some such another enough less little one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty hundred thousand first second third last next');
+/* Words that come first before a noun and never take a comma after them ("little" is not here: in
+   "the little red car" it is an adjective of size). */
+const B_DET =B_WL('a an the this that these those my your his her its our their whose all any both each either every few many more most much neither no other several some such another enough less one two three four five six seven eight nine ten eleven twelve twenty thirty forty fifty hundred thousand first second third last next');
+/* Adjectives that tell shape, age, color, material, or type join with the words after them into one unit
+   ("red car"), so no comma goes before them after a different adjective ("the little red car"). A capital
+   letter inside the sentence marks an origin word ("an expensive Italian car"). Most type words are nouns, an
+   open group: the builder asks about the ones that are not here. Two words of one group ("red, white") can
+   take a comma. Sources: Quirk et al. 1985 (premodifier zones), Feist 2011, lesson 2. */
+const B_FACT = {
+  shape: B_WL('round square flat oval circular triangular rectangular straight curved'),
+  age: B_WL('old new young ancient modern antique elderly teenage'),
+  color: B_WL('red orange yellow green blue purple pink brown black white gray grey golden silver maroon scarlet crimson violet'),
+  material: B_WL('wooden wood stone brick brass iron steel gold silk cotton wool woolen leather plastic glass paper metal copper marble'),
+  type: B_WL('summer winter spring autumn morning evening night kitchen school front back garden'),
+};
+function bFactGroup(toks, i) {
+  const w = toks[i].w, lw = w.toLowerCase();
+  for (const [g, set] of Object.entries(B_FACT)) if (set.has(lw)) return g;
+  return i > 0 && /^[A-Z][a-z]/.test(w) ? 'origin' : null;
+}
+/* Comma between adjective y and the adjective before it: the user's answer, else none before a shape, age,
+   color, origin, material, or type word (a comma between two words of one group); null = ask the user. */
+function coordOf(toks, jobs, y) {
+  if (jobs[y].coord != null) return jobs[y].coord;
+  const g = bFactGroup(toks, y);
+  if (!g) return null;
+  return g === bFactGroup(toks, y - 1);
+}
 const B_SUBJ_PRON = B_WL('i he she we they who whoever');
 const B_OBJ_PRON = B_WL('me him us them whom whomever');
 const B_PRON_PAIR = { i: 'me', he: 'him', she: 'her', we: 'us', they: 'them', who: 'whom', whoever: 'whomever',
@@ -465,8 +494,9 @@ function canonSpec(sp) {
 }
 
 /* ---------- commas and semicolons from the structure ---------- */
-/* Returns { gaps: Map(gap -> { need, alt, opt, rule }), traps: Map(gap -> rule), asks: [word] }.
-   gap i = after word i. need = the mark that the rule asks for; alt = other marks that are also correct. */
+/* Returns { gaps: Map(gap -> { need, alt, opt, rule }), traps: Map(gap -> rule), asks: [word], why: Map(gap -> rule) }.
+   gap i = after word i. need = the mark that the rule asks for; alt = other marks that are also correct.
+   traps: places with a note "no comma"; why: other places with a rule that explains an extra mark. */
 function commaRules(toks, jobs, end) {
   const n = toks.length, built = specFromJobs(toks, jobs, end), { g, groups } = built, { kids } = g, J = i => jobs[i];
   const gaps = new Map(), traps = new Map(), asks = [], prio = new Map(), tprio = new Map();
@@ -565,15 +595,21 @@ function commaRules(toks, jobs, end) {
       else put(sp[k][1], ',', 'serial', 3, { opt: true });
     }
   });
-  // 6. two adjectives before a noun: commas only when "and" can go between them
+  // 6. two adjectives before a noun: a comma before an opinion, size, or quality word; none before a shape,
+  //    age, color, origin, material, or type word (coordOf; the user answers when the builder cannot tell)
   jobs.forEach((Jn, y) => {
     if (!Jn || Jn.j !== 'ADJ' || y === 0 || B_DET.has(lw(y))) return;
     const x = y - 1, p = jobs[x];
     if (!(p && p.j === 'ADJ' && p.to === Jn.to && !B_DET.has(lw(x)) && Jn.to > y)) return;
-    if (Jn.coord === true) put(x, ',', 'coord', 5);
-    else if (Jn.coord === false) trap(x, 'cumul');
+    const c = coordOf(toks, jobs, y);
+    if (c === true) put(x, ',', 'coord', 5);
+    else if (c === false) trap(x, 'cumul');
     else asks.push(y);
   });
+  // no comma after "the" or "my", and none before the noun: a note when the noun has two or more adjectives
+  const why = adjWhy(toks, jobs), nAdj = new Map();
+  jobs.forEach((Jn, i) => { if (Jn && Jn.j === 'ADJ' && Jn.to != null && Jn.to > i && !B_DET.has(lw(i))) nAdj.set(Jn.to, (nAdj.get(Jn.to) || 0) + 1); });
+  why.forEach((rule, i) => { if ((nAdj.get(jobs[i].to) || 0) >= 2) trap(i, rule); });
   // 7. places where a comma is a common mistake
   jobs.forEach((Jn, v) => {
     if (!(Jn && Jn.j === 'V')) return;
@@ -601,7 +637,18 @@ function commaRules(toks, jobs, end) {
   // a semicolon before the conjunction is also correct when the clauses have their own commas
   joinGaps.forEach(({ gap, A, B }) => { if (inner(A[0], A[1]) || inner(B[0], B[1])) Object.assign(gaps.get(gap), { alt: [';'], altRule: { ';': 'semiSeries' } }); });
   gaps.forEach((_, gap) => traps.delete(gap));   // a mark that a rule asks for is not a mistake
-  return { gaps, traps, asks };
+  return { gaps, traps, asks, why };
+}
+/* Places where a comma never goes before a noun: after a word like "the," "my," or "two" (det), and between
+   the last adjective and the noun (adjNoun). Returns Map(gap -> rule). The comma steps use it to explain a mark. */
+function adjWhy(toks, jobs) {
+  const out = new Map();
+  jobs.forEach((Jn, i) => {
+    if (!Jn || Jn.j !== 'ADJ' || Jn.to == null || Jn.to <= i || i >= toks.length - 1) return;
+    if (B_DET.has(toks[i].w.toLowerCase())) out.set(i, 'det');
+    else if (Jn.to === i + 1) out.set(i, 'adjNoun');
+  });
+  return out;
 }
 /* Default for "extra information": an adjective clause with "that" tells which one; others add information. */
 function defaultExtra(toks, jobs, e) {
@@ -621,7 +668,7 @@ function gradeMarks(toks, rules) {
       else if (m === '' && r.opt) items.push({ i, k: 'opt', need: r.need, rule: r.rule });
       else if (!okMarks.includes(m)) items.push({ i, k: 'wrong', need: r.need, got: m, rule: r.rule });
       else items.push({ i, k: r.opt ? 'opt' : 'good', need: m, rule: m === r.need ? r.rule : (r.altRule[m] || r.rule) });
-    } else if (m) items.push({ i, k: 'extra', got: m, rule: rules.traps.get(i) || 'none' });
+    } else if (m) items.push({ i, k: 'extra', got: m, rule: rules.traps.get(i) || (rules.why && rules.why.get(i)) || 'none' });
     else if (rules.traps.has(i)) items.push({ i, k: 'no', rule: rules.traps.get(i) });
   }
   const bad = items.filter(x => ['missing', 'wrong', 'extra'].includes(x.k));
