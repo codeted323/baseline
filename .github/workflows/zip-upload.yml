@@ -1,0 +1,108 @@
+# Publish the site, and first unpack a zip file if one was uploaded.
+#
+# Put this file in the repository at:  .github/workflows/zip-upload.yml
+# Settings > Pages > Source must be "GitHub Actions".
+#
+# When you upload a zip (Add file > Upload files), this workflow:
+#   1. unpacks the zip over the repository (it adds and replaces files; it never deletes files),
+#   2. removes the zip,
+#   3. rebuilds index.html from the source files (python3 build.py),
+#   4. saves the changes in one commit: "new bulk zip upload updated codebase",
+#   5. publishes index.html to GitHub Pages.
+# Any other change on the main branch (for example a file edited on github.com) also rebuilds and
+# publishes the site. You can also start it by hand: Actions > Publish site > Run workflow.
+
+name: Publish site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write   # save the commit
+  pages: write      # publish the site
+  id-token: write   # publish the site
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Get the files of the repository
+        uses: actions/checkout@v7
+
+      - name: Unpack the uploaded zip
+        id: unpack
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t zips < <(find . -path ./.git -prune -o -type f -iname '*.zip' -print)
+          if [ "${#zips[@]}" -eq 0 ]; then
+            echo "No zip file in the repository: nothing to unpack."
+            exit 0
+          fi
+          for zip in "${zips[@]}"; do
+            echo "Unpacking $zip"
+            tmp="$(mktemp -d)"
+            unzip -q "$zip" -d "$tmp"
+            rm -rf "$tmp/__MACOSX"
+            src="$tmp"
+            mapfile -t top < <(find "$tmp" -mindepth 1 -maxdepth 1)
+            if [ "${#top[@]}" -eq 1 ] && [ -d "${top[0]}" ] && [ ! -e "./$(basename "${top[0]}")" ]; then
+              src="${top[0]}"   # the zip holds one wrapper folder (like baseline-source/): use what is inside it
+            fi
+            (cd "$src" && tar --exclude='./.git' --exclude='./.github' --exclude='.DS_Store' -cf - .) | tar -xf -
+            git rm -q --ignore-unmatch -- "$zip"
+            rm -f -- "$zip"
+          done
+          echo "unpacked=yes" >> "$GITHUB_OUTPUT"
+
+      - name: Rebuild index.html from the source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f build.py ]; then
+            python3 build.py
+          else
+            echo "No build.py: index.html stays as it is."
+          fi
+
+      - name: Save the changes in a commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to save."
+            exit 0
+          fi
+          if [ "${{ steps.unpack.outputs.unpacked }}" = "yes" ]; then
+            git commit -m "new bulk zip upload updated codebase"
+          else
+            git commit -m "rebuild index.html from the source files"
+          fi
+          git push
+
+      - name: Collect the site files
+        shell: bash
+        run: |
+          mkdir -p _site
+          cp index.html _site/
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+      - name: Publish to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v5
