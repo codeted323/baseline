@@ -97,14 +97,11 @@ a { color: var(--accent); }
 }
 .nav a:hover { background: var(--accent-soft); }
 .nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); box-shadow: inset 0 -3px 0 var(--accent); }
-@media (max-width: 30rem) {
-  .nav { width: 100%; margin-left: 0; }
-  .nav a { flex: 1 1 auto; padding: 0 6px; }
+@media (max-width: 40rem) {                 /* six links: two rows of three on a phone */
+  .nav { width: 100%; margin-left: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+  .nav a { padding: 0 4px; }
 }
-@media (max-width: 30rem) {                 /* five links on a phone */
-  .nav { gap: 2px; }
-  .nav a { padding: 0 3px; font-size: 15px; }
-}
+@media (max-width: 22.5rem) { .nav a { font-size: 15px; } }
 
 /* ---------- page ---------- */
 main { max-width: 46rem; margin: 0 auto; padding: 12px 16px 56px; }
@@ -380,6 +377,42 @@ select {
 .bd-cur p { margin: 0; flex: 1 1 16rem; }
 .bd-act { margin-top: 18px; }
 
+/* ---------- flash cards ---------- */
+.fc-opts { display: flex; flex-direction: column; gap: 14px; margin: 10px 0 18px; }
+.fc-row { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: end; }
+.fc-field { flex: 0 1 auto; }
+.fc-field select { min-width: 12rem; }
+.fc-wrap { perspective: 1400px; }
+.fc { display: grid; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; color: inherit; text-align: center; border-radius: 14px; }
+.fc:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.fc-face {
+  grid-area: 1 / 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  min-height: 240px; padding: 26px 22px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--sheet);
+  box-shadow: 0 3px 14px rgba(8, 14, 28, .08); backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  transition: transform .45s ease, visibility 0s linear .22s;
+}
+.fc-back { transform: rotateY(180deg); visibility: hidden; border-color: var(--accent); }
+.fc.flipped .fc-front { transform: rotateY(-180deg); visibility: hidden; }
+.fc.flipped .fc-back { transform: rotateY(0deg); visibility: visible; }
+.fc-term { display: block; font-size: 28px; font-weight: 750; line-height: 1.2; overflow-wrap: anywhere; }
+.fc-term.fc-small { font-size: 22px; }
+.fc-def { display: block; font-size: 19px; line-height: 1.5; max-width: 34rem; }
+.fc-q { display: block; color: var(--muted); font-size: 16px; }
+.fc-pic svg { display: block; width: 150px; height: 100px; color: var(--ink); }
+.fc-pic .ph, .fc-pic-s .ph { fill: var(--muted); opacity: .45; }
+.fc-ex { display: block; font-size: 16px; line-height: 1.5; max-width: 34rem; }
+.fc-pic-m svg { width: 96px; height: 64px; }
+.fc-exl { font-weight: 700; color: var(--muted); }
+.fc-ex mark, .fc-list mark { background: var(--accent); color: var(--accent-ink); padding: 0 4px; border-radius: 4px; font-weight: 800; }
+.fc-count { color: var(--muted); margin: 12px 0 0; }
+.fc-all { margin-top: 26px; border-top: 1px solid var(--line); padding-top: 8px; }
+.fc-all summary { cursor: pointer; font-weight: 700; min-height: 44px; display: flex; align-items: center; color: var(--accent); }
+.fc-item { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.fc-item dt { font-weight: 700; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fc-item dd { margin: 4px 0 0; }
+.fc-pic-s svg { display: block; width: 54px; height: 36px; color: var(--ink); }
+.fc-known { font-size: 14px; font-weight: 600; color: var(--green); background: var(--green-soft); padding: 1px 8px; border-radius: 10px; }
+
 </style>
 </head>
 <body>
@@ -390,6 +423,7 @@ select {
     <a href="#/practice" data-view="practice">Practice</a>
     <a href="#/challenges" data-view="challenges">Challenges</a>
     <a href="#/build" data-view="build">Build</a>
+    <a href="#/cards" data-view="cards">Cards</a>
     <a href="#/guide" data-view="guide">Guide</a>
   </nav>
 </div></header>
@@ -1824,6 +1858,74 @@ Object.assign(UI, {
   bSelectWord: 'Select a word.',
   bSaved: 'This browser keeps your sentence and its jobs.',
   bAnswerNote: 'These are the jobs from the lesson. Select a word to see its job.',
+});
+
+/* ---------------------------------------------------------------
+   Flash cards: the decks use TERMS, KEY (with its line pictures), and COMMA.
+   The front of a comma card names the place in the sentence.
+   --------------------------------------------------------------- */
+const CARD_DECKS = [['terms', 'Grammar terms'], ['lines', 'Diagram lines'], ['commas', 'Comma rules'], ['all', 'All cards']];
+const COMMA_NAMES = {
+  compound: 'Two clauses that and, but, or, so, or yet joins',
+  intro: 'A phrase of five or more words at the start',
+  introShort: 'A short word or phrase at the start',
+  series: 'Three or more parts in a series',
+  serial: 'The last comma of a series, before the conjunction',
+  coord: 'Two adjectives that describe a noun equally',
+  sv: 'Between a subject and its verb',
+  vo: 'Between a verb and its object',
+  pair: 'Between the two parts of a compound',
+  cumul: 'Between adjectives that must stay in their order',
+  apNon: 'An appositive that adds extra information',
+  addr: 'A noun of direct address',
+  intj: 'A mild interjection, like oh or well',
+  introPart: 'A participle phrase at the start',
+  partNon: 'A participle phrase that adds extra information',
+  introInf: 'An infinitive phrase at the start',
+  introClause: 'An adverb clause at the start',
+  acNon: 'An adjective clause that adds extra information',
+  abs: 'An absolute phrase at the start',
+  semi: 'Two clauses with no conjunction between them',
+  semiAdv: 'However or therefore between two clauses',
+  adv: 'However or therefore at the start of a clause',
+  semiSeries: 'A series whose parts have their own commas',
+  acRestr: 'An adjective clause that tells which one',
+  partRestr: 'A participle phrase that tells which one',
+  appRestr: 'An appositive that tells which one',
+  scAfter: 'An adverb clause after the main clause',
+  ncNo: 'Before a noun clause',
+  expl: 'After “there” at the start of a sentence',
+  ocNo: 'Between a direct object and its objective complement',
+  scContrast: 'Although or though at the end of a sentence',
+  advMid: 'However in the middle of a clause',
+};
+Object.assign(UI, {
+  fcTitle: 'Flash cards',
+  fcIntro: 'Each card has a term on one side and its definition on the other. Say the answer, then turn the card over.',
+  fcDeck: 'Cards',
+  fcLessons: 'Lessons',
+  fcAllLessons: 'All lessons',
+  fcUpTo: 'Lessons 1 to {n}',
+  fcFirst: 'Show first',
+  fcFirstTerm: 'Term',
+  fcFirstDef: 'Definition',
+  fcShuffle: 'Shuffle',
+  fcKnew: 'I knew it',
+  fcAgain: 'Study again',
+  fcTurn: 'Turn over',
+  fcCount: 'Card {i} of {n} to study. You know {k} of {t}.',
+  fcDone: 'You know all {n} cards here.',
+  fcRestart: 'Study these cards again',
+  fcEmpty: 'These lessons have no cards of this kind.',
+  fcList: 'See all the cards',
+  fcLineQ: 'What is the name of this line?',
+  fcCommaQ: 'Comma or no comma?',
+  fcExample: 'Example:',
+  fcNoAfter: 'There is no comma after “{w}.”',
+  fcHint: 'Select the card or press Space to turn it over.',
+  fcSaved: 'This browser keeps the cards that you know.',
+  fcKnown: 'known',
+  fcHomeText: 'Learn the terms, the diagram lines, and the comma rules with cards.',
 });
 
 'use strict';
@@ -3932,6 +4034,11 @@ function viewHome() {
       <h2>${esc(UI.bHomeTitle)}</h2>
       <p>${esc(UI.bHomeText)}</p>
       <div class="row"><a class="btn" href="#/build">${esc(UI.bGo)}</a></div>
+    </section>
+    <section>
+      <h2>${esc(UI.fcTitle)}</h2>
+      <p>${esc(UI.fcHomeText)}</p>
+      <div class="row"><a class="btn" href="#/cards">${esc(UI.fcTitle)}</a></div>
     </section>`;
   mountDiagrams(app);
 }
@@ -4702,7 +4809,7 @@ bdlg.addEventListener('click', e => {
     else if (k === 'you') J.you = v === '1';
     else if (k === 'coord') J.coord = v === '1';
     focus = `[data-bo="${t.dataset.bo}"]`;
-  } else if (t.dataset.bd === 'done') { bdlg.close(); return; }
+  } else if (t.dataset.bd === 'done') { if (BS.dirty) { BS.dirty = false; renderBDiagram(); } bdlg.close(); return; }   // draw now, not after the close event
   else if (t.dataset.bd === 'change') { BS.showJobs = true; renderJobDlg('[data-bj][aria-pressed="true"]'); return; }
   else if (t.dataset.bd === 'remove') { J = null; BS.showJobs = true; focus = '[data-bj]'; }
   BLD.jobs = autoFill(toks.map((_, k) => (k === i ? J : jobs[k])), i);
@@ -4752,6 +4859,156 @@ function onBuildAct(act) {
   }
 }
 
+
+/* ---------- flash cards ---------- */
+const FC_STORE = 'baseline-cards-v1';
+let FCS = { known: [], deck: 'terms', upTo: 0, first: 'term' };
+try {
+  const v = JSON.parse(localStorage.getItem(FC_STORE) || 'null');
+  if (v && typeof v === 'object') FCS = { known: Array.isArray(v.known) ? v.known : [], deck: CARD_DECKS.some(([k]) => k === v.deck) ? v.deck : 'terms',
+    upTo: Number.isInteger(v.upTo) ? v.upTo : 0, first: v.first === 'def' ? 'def' : 'term' };
+} catch (e) { /* storage blocked */ }
+function saveFc() { try { localStorage.setItem(FC_STORE, JSON.stringify(FCS)); } catch (e) { /* storage blocked */ } }
+let FC = null, ALL_CARDS = null;
+/* All cards, each with the first lesson that teaches it. */
+function allCards() {
+  if (ALL_CARDS) return ALL_CARDS;
+  const termLesson = {};
+  LESSONS.forEach((l, i) => l.body.forEach(b => [b.p, ...(b.ol || []), ...(b.ul || [])].filter(Boolean).forEach(t =>
+    (t.match(/\[\[[^\]]+\]\]/g) || []).forEach(m => {
+      const k = m.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/, (_, a, b2) => b2 || a);
+      if (!(k in termLesson)) termLesson[k] = i + 1;
+    }))));
+  const lessonOf = new Map();                // sentence -> the first lesson that shows it
+  LESSONS.forEach((l, i) => { l.body.forEach(b => { if (b.ex && !lessonOf.has(b.ex)) lessonOf.set(b.ex, i + 1); });
+    l.practice.forEach(k => { if (!lessonOf.has(k)) lessonOf.set(k, i + 1); }); });
+  const firstLesson = pred => { let best = 99; lessonOf.forEach((L, k) => { if (L < best && pred(SENT[k])) best = L; }); return best; };
+  const roles = sp => new Set(wordsOf(sp).map(n => n.role));
+  const LINE_TEST = { base: () => true, sv: () => true, you: sp => roles(sp).has('SU'),
+    mod: sp => ['ADJ', 'ADV', 'ART', 'POS'].some(r => roles(sp).has(r)), hook: sp => wordsOf(sp).some(n => n.kind === 'mod' && n.parent && n.parent.kind === 'mod'),
+    do: sp => roles(sp).has('DO'), cl: sp => roles(sp).has('PN') || roles(sp).has('PA'), prep: sp => roles(sp).has('PREP'),
+    io: sp => roles(sp).has('IO'), conj: sp => roles(sp).has('CONJ'), clause: sp => !!sp.clauses };
+  const cards = [];
+  Object.entries(TERMS).forEach(([k, [term, def]]) => cards.push({ id: 't:' + k, deck: 'terms', lesson: termLesson[k] || 99, term, def }));
+  KEY.forEach(k => cards.push({ id: 'l:' + k.icon, deck: 'lines', lesson: LINE_TEST[k.icon] ? firstLesson(LINE_TEST[k.icon]) : 1, term: k.name, def: k.text, pic: ICON[k.icon] }));
+  Object.entries(COMMA_NAMES).forEach(([rule, name]) => {   // the example is the shortest sentence of the app with the rule
+    let ex = null;
+    Object.entries(SENT).forEach(([key, sp]) => {
+      const cm = Object.entries(sp.cm || {}).find(([, r]) => r.replace('?', '') === rule);
+      const tr = !cm && Object.entries(sp.trap || {}).find(([, r]) => r === rule);
+      const hit = cm || tr;
+      if (hit && (!ex || sp.s.length < ex.s.length)) ex = { s: sp.s, w: hit[0], trap: !cm };
+    });
+    const lesson = firstLesson(sp => Object.values(sp.cm || {}).some(r => r.replace('?', '') === rule) || Object.values(sp.trap || {}).includes(rule));
+    cards.push({ id: 'c:' + rule, deck: 'commas', lesson, term: name, def: COMMA[rule], ex });
+  });
+  return (ALL_CARDS = cards);
+}
+function exampleHtml(ex) {                   // the word before the place in bold, the mark highlighted
+  const m = ex.w.match(/^(.*?)(?:#(\d+))?$/), nth = +(m[2] || 1);
+  let c = 0;
+  return ex.s.split(/\s+/).map(raw => {
+    const w = tokens(raw)[0];
+    if (w !== m[1] || ++c !== nth) return esc(raw);
+    const mm = raw.match(/^(.*?)([,;]?)([.?!]*)$/);
+    return ex.trap ? `<strong>${esc(mm[1])}</strong>${esc(mm[2] + mm[3])}` : `<strong>${esc(mm[1])}<mark>${esc(mm[2])}</mark></strong>${esc(mm[3])}`;
+  }).join(' ');
+}
+const fcCards = () => allCards().filter(c => (FCS.deck === 'all' || c.deck === FCS.deck) && (!FCS.upTo || c.lesson <= FCS.upTo));
+
+function viewCards() {
+  document.title = 'Flash cards – Baseline';
+  app.innerHTML = `
+    <section class="cards">
+      <h1 tabindex="-1">${esc(UI.fcTitle)}</h1>
+      <p class="lede">${esc(UI.fcIntro)}</p>
+      <div class="fc-opts">
+        <div class="bd-jobs" role="group" aria-label="${esc(UI.fcDeck)}">${CARD_DECKS.map(([k, l]) =>
+          `<button type="button" class="chip" data-fcdeck="${k}" aria-pressed="${FCS.deck === k}">${esc(l)}</button>`).join('')}</div>
+        <div class="fc-row">
+          <label class="field fc-field"><span>${esc(UI.fcLessons)}</span><select id="fc-upto">${[0, ...LESSONS.map((_, i) => i + 1)].map(n =>
+            `<option value="${n}"${FCS.upTo === n ? ' selected' : ''}>${esc(n ? fmt(UI.fcUpTo, { n }) : UI.fcAllLessons)}</option>`).join('')}</select></label>
+          <div class="field fc-field"><span id="fc-first-l">${esc(UI.fcFirst)}</span><div class="bd-jobs" role="group" aria-labelledby="fc-first-l">${[['term', UI.fcFirstTerm], ['def', UI.fcFirstDef]].map(([v, l]) =>
+            `<button type="button" class="chip" data-fcfirst="${v}" aria-pressed="${FCS.first === v}">${esc(l)}</button>`).join('')}</div></div>
+        </div>
+      </div>
+      <div id="fc-main"></div>
+      <details class="fc-all"><summary>${esc(UI.fcList)}</summary><dl id="fc-list"></dl></details>
+      <p class="muted">${esc(UI.fcSaved)}</p>
+    </section>`;
+  fcStart(false);
+}
+function fcStart(shuffle) {
+  const cards = fcCards(), known = new Set(FCS.known), round = cards.filter(c => !known.has(c.id)).map(c => c.id);
+  if (shuffle) for (let i = round.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [round[i], round[j]] = [round[j], round[i]]; }
+  FC = { cards, round, flipped: false };
+  renderFc(); renderFcList();
+}
+function fcFace(c, side, front) {           // side: 'term' or 'def'; front: this side shows first
+  if (side === 'term') {
+    if (c.deck === 'lines') return `<span class="fc-pic" aria-hidden="true">${c.pic}</span>${front ? `<span class="fc-q">${esc(UI.fcLineQ)}</span>` : `<span class="fc-term">${esc(c.term)}</span>`}`;
+    return `<span class="fc-term">${esc(c.term)}</span>${c.deck === 'commas' && front ? `<span class="fc-q">${esc(UI.fcCommaQ)}</span>` : ''}`;
+  }
+  let h = '';
+  if (c.deck === 'lines' && !front) h += `<span class="fc-pic fc-pic-m" aria-hidden="true">${c.pic}</span><span class="fc-term fc-small">${esc(c.term)}</span>`;
+  h += `<span class="fc-def">${esc(c.def)}</span>`;
+  if (c.ex && !front) h += `<span class="fc-ex"><span class="fc-exl">${esc(UI.fcExample)}</span> ${exampleHtml(c.ex)}</span>`
+    + (c.ex.trap ? `<span class="fc-ex">${esc(fmt(UI.fcNoAfter, { w: c.ex.w.replace(/#\d+$/, '') }))}</span>` : '');
+  return h;
+}
+function renderFc(focus) {
+  const box = $('#fc-main'), known = new Set(FCS.known), t = FC.cards.length, k = FC.cards.filter(c => known.has(c.id)).length;
+  if (!t) { box.innerHTML = `<p class="hint">${esc(UI.fcEmpty)}</p>`; return; }
+  if (!FC.round.length) {
+    box.innerHTML = `<p class="fb ok" role="status">${esc(fmt(UI.fcDone, { n: t }))}</p>
+      <div class="actions"><button type="button" class="btn primary" data-fc="restart">${esc(UI.fcRestart)}</button></div>`;
+    if (focus) $('[data-fc="restart"]').focus();
+    return;
+  }
+  const c = FC.cards.find(x => x.id === FC.round[0]), first = FCS.first, second = first === 'term' ? 'def' : 'term';
+  box.innerHTML = `
+    <div class="fc-wrap"><button type="button" class="fc" id="fc-card" data-fc="flip" aria-describedby="fc-hint">
+      <span class="fc-face fc-front">${fcFace(c, first, true)}</span>
+      <span class="fc-face fc-back">${fcFace(c, second, false)}</span>
+    </button></div>
+    <p class="fc-count">${esc(fmt(UI.fcCount, { i: 1, n: FC.round.length, k, t }))}</p>
+    <div class="actions" id="fc-acts"></div>
+    <p class="hint" id="fc-hint">${esc(UI.fcHint)}</p>
+    <p class="sr" id="fc-live" aria-live="polite"></p>`;
+  renderFcActs();
+  if (focus) $('#fc-card').focus({ preventScroll: true });
+}
+function renderFcActs() {
+  $('#fc-acts').innerHTML = FC.flipped
+    ? `<button type="button" class="btn primary" data-fc="knew">${esc(UI.fcKnew)}</button><button type="button" class="btn" data-fc="again">${esc(UI.fcAgain)}</button>`
+    : `<button type="button" class="btn primary" data-fc="flip">${esc(UI.fcTurn)}</button><button type="button" class="btn" data-fc="shuffle">${esc(UI.fcShuffle)}</button>`;
+}
+function renderFcList() {
+  const known = new Set(FCS.known);
+  $('#fc-list').innerHTML = FC.cards.map(c => `<div class="fc-item"><dt>${c.pic ? `<span class="fc-pic fc-pic-s" aria-hidden="true">${c.pic}</span>` : ''}${esc(c.term)}${known.has(c.id) ? ` <span class="fc-known">${esc(UI.fcKnown)}</span>` : ''}</dt>
+    <dd>${esc(c.def)}${c.ex ? `<br><span class="fc-exl">${esc(UI.fcExample)}</span> ${exampleHtml(c.ex)}` : ''}</dd></div>`).join('');
+}
+function onFc(act) {
+  const id = FC.round[0];
+  if (act === 'flip') {
+    FC.flipped = !FC.flipped;
+    $('#fc-card').classList.toggle('flipped', FC.flipped);
+    const face = $(FC.flipped ? '#fc-card .fc-back' : '#fc-card .fc-front');
+    $('#fc-live').textContent = face ? face.textContent : '';
+    renderFcActs();
+    if (document.activeElement && document.activeElement.closest('#fc-acts')) $('#fc-acts .btn').focus();
+  } else if (act === 'knew') {
+    if (!FCS.known.includes(id)) FCS.known.push(id);
+    saveFc(); FC.round.shift(); FC.flipped = false; renderFc(true); renderFcList();
+  } else if (act === 'again') { FC.round.push(FC.round.shift()); FC.flipped = false; renderFc(true); }
+  else if (act === 'shuffle') { fcStart(true); $('#fc-card') && $('#fc-card').focus({ preventScroll: true }); }
+  else if (act === 'restart') {
+    const ids = new Set(FC.cards.map(c => c.id));
+    FCS.known = FCS.known.filter(x => !ids.has(x)); saveFc(); fcStart(false);
+    if ($('#fc-card')) $('#fc-card').focus({ preventScroll: true });
+  }
+}
+
 /* ---------- reset progress (two-step button) ---------- */
 let resetArmed = 0;
 function onReset(btn) {
@@ -4766,6 +5023,7 @@ function onReset(btn) {
   done = new Set(); saveDone();
   chState = {}; saveCh();
   BLD = { text: '', jobs: [], started: false, key: null }; saveBld();
+  FCS.known = []; saveFc();
   btn.textContent = UI.reset;
   fb.className = 'fb ok';
   fb.textContent = UI.resetDone;
@@ -4792,6 +5050,18 @@ app.addEventListener('click', e => {
   if (panned) { e.preventDefault(); return; }
   const z = e.target.closest('[data-zoom]');
   if (z) { zoomSheet($('#pz-sheet'), z.dataset.zoom); return; }
+  const fc = e.target.closest('[data-fc],[data-fcdeck],[data-fcfirst]');
+  if (fc && app.contains(fc)) {
+    if (fc.dataset.fc) onFc(fc.dataset.fc);
+    else {
+      if (fc.dataset.fcdeck) FCS.deck = fc.dataset.fcdeck; else FCS.first = fc.dataset.fcfirst;
+      saveFc();
+      document.querySelectorAll('[data-fcdeck]').forEach(b => b.setAttribute('aria-pressed', b.dataset.fcdeck === FCS.deck));
+      document.querySelectorAll('[data-fcfirst]').forEach(b => b.setAttribute('aria-pressed', b.dataset.fcfirst === FCS.first));
+      fcStart(false);
+    }
+    return;
+  }
   const bt = e.target.closest('[data-bact],[data-bw]');
   if (bt && app.contains(bt)) { if (bt.dataset.bact) onBuildAct(bt.dataset.bact); else openJob(+bt.dataset.bw, bt); return; }
   const bp = e.target.closest('.build .part.w');
@@ -4815,6 +5085,7 @@ app.addEventListener('keydown', e => {
   }
 });
 app.addEventListener('change', e => {
+  if (e.target.id === 'fc-upto') { FCS.upTo = +e.target.value; saveFc(); fcStart(false); return; }
   if (e.target.id === 'pz-lesson') location.hash = `#/practice/${e.target.value}/1`;
 });
 
@@ -4829,6 +5100,7 @@ function route() {
   else if (v === 'challenges') { nav = 'challenges'; viewChallenges(); }
   else if (v === 'challenge') { nav = 'challenges'; viewChallenge(+a || 1); }
   else if (v === 'build') { nav = 'build'; viewBuild(); }
+  else if (v === 'cards') { nav = 'cards'; viewCards(); }
   else viewHome();
   setNav(nav);
   if (dlg.open) dlg.close();
@@ -4860,13 +5132,15 @@ function steTexts() {
   Object.entries(TIPS).forEach(([k, s]) => add('procedure', s, `tip ${k}`));
   Object.entries(COMMA).forEach(([k, s]) => add('procedure', s, `comma ${k}`));
   GUIDE_COMMAS.forEach(s => add('procedure', s, 'guide commas'));
-  Object.entries(UI).forEach(([k, s]) => [].concat(s).forEach(t => add(/^(fb|homeIntro|howTo|exampleHint|progressNote|resetDone|cm|commasIntro|ch(Fb|HowTo|Rules|Scroll|All|Home|Intro|NoStars)|b(Intro|Limit|EditNote|WordsHint|NoDiagram|Ok|MarksLater|Ask|Saved|AnswerNote|HomeText))/.test(k) ? 'procedure' : 'label', t, `ui ${k}`)));
+  Object.entries(UI).forEach(([k, s]) => [].concat(s).forEach(t => add(/^(fb|homeIntro|howTo|exampleHint|progressNote|resetDone|cm|commasIntro|ch(Fb|HowTo|Rules|Scroll|All|Home|Intro|NoStars)|b(Intro|Limit|EditNote|WordsHint|NoDiagram|Ok|MarksLater|Ask|Saved|AnswerNote|HomeText)|fc(Intro|Hint|Saved|Done|Empty|HomeText|NoAfter))/.test(k) ? 'procedure' : 'label', t, `ui ${k}`)));
   TIERS.forEach(t => add('label', t, 'tier'));
   Object.entries(JOBS).forEach(([k, [nm, d]]) => { add('label', nm, `job ${k}`); add('descriptive', d, `job ${k}`); });
   JOB_GROUPS.forEach(([t]) => add('label', t, 'job group'));
   Object.entries(JOB_ASK).forEach(([k, t]) => add('procedure', t, `ask ${k}`));
   [...CLAUSE_KINDS, ...SLOTS, ...INF_USES].forEach(([, t]) => add('label', t, 'option'));
   Object.values(JOB_TAG).forEach(t => add('label', t, 'job tag'));
+  CARD_DECKS.forEach(([, t]) => add('label', t, 'deck'));
+  Object.entries(COMMA_NAMES).forEach(([k, t]) => add('label', t, `comma name ${k}`));
   Object.entries(JOB_NEED).forEach(([k, t]) => add('descriptive', t, `need ${k}`));
   Object.entries(B_MSG).forEach(([k, t]) => add('procedure', t, `msg ${k}`));
   Object.entries(SENT).forEach(([k, sp]) => { if (sp.ctx) add('descriptive', sp.ctx, `ctx ${k}`); });
@@ -4875,7 +5149,7 @@ function steTexts() {
 }
 window.BASELINE = { G, SENT, LESSONS, ROLE, LINES, TERMS, UI, TIPS, COMMA, commaInfo, gradeCommas, layout, getLayout, svgFor, annotate, wordsOf, tokens, validate,
   textW, hitPoly, boxPoly, segPoly, explainWord, dynLine, steTexts, state: () => PZ, CHALLENGES, TIERS, chStore: () => chState,
-  parseSentence, specFromJobs, jobsFromSpec, canonSpec, commaRules, gradeMarks, bGraph, checkBuild };
+  parseSentence, specFromJobs, jobsFromSpec, canonSpec, commaRules, gradeMarks, bGraph, checkBuild, allCards, cardStore: () => FCS };
 
 /* ---------- start ---------- */
 (async function boot() {
