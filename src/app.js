@@ -241,6 +241,7 @@ function viewGuide() {
       <p class="muted">${esc(UI.progressNote)}</p>
       <button type="button" class="btn" data-reset>${esc(UI.reset)}</button>
       <p class="fb" id="reset-fb" role="status" aria-live="polite"></p>
+      <p class="muted version">${esc(fmt(UI.version, { v: APP_VERSION }))}</p>
     </article>`;
 }
 
@@ -1300,7 +1301,8 @@ function steTexts() {
 }
 window.BASELINE = { G, SENT, LESSONS, ROLE, LINES, TERMS, UI, TIPS, COMMA, commaInfo, gradeCommas, layout, getLayout, svgFor, annotate, wordsOf, tokens, validate,
   textW, hitPoly, boxPoly, segPoly, explainWord, dynLine, steTexts, state: () => PZ, CHALLENGES, TIERS, chStore: () => chState,
-  parseSentence, specFromJobs, jobsFromSpec, canonSpec, commaRules, gradeMarks, bGraph, checkBuild, allCards, cardStore: () => FCS };
+  parseSentence, specFromJobs, jobsFromSpec, canonSpec, commaRules, gradeMarks, bGraph, checkBuild, allCards, cardStore: () => FCS,
+  VERSION: APP_VERSION };
 
 /* ---------- start ---------- */
 (async function boot() {

@@ -221,6 +221,7 @@ select {
 .chip.used { border-style: dashed; border-color: var(--line); color: transparent; background: transparent; cursor: default; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 14px 0 0; }
 .fb { margin: 14px 0 0; min-height: 1.55em; }
+.version { margin-top: 28px; font-size: 15px; }
 .fb:empty { display: none; }
 .fb.ok, .fb.err, .fb.warn { padding: 10px 14px; border-radius: 8px; border-left: 4px solid; }
 .fb.ok { color: var(--green); background: var(--green-soft); }

@@ -18,12 +18,13 @@ repository. Nothing else is needed to run the site.
 | `src/builder.js` | The "Build" tab: word jobs to diagram, comma rules from the structure, and the built-in checks. |
 | `src/app.js` | The pages, the puzzles, the flash cards, the router, and saved progress. |
 | `src/styles.css` | Styles (light and dark). |
+| `src/version.txt` | The release time that the Guide page shows, for example "Version: 2026-10-13 13:58 EDT". |
 | `src/ahn-sub.woff2` | Font: a Basic Latin subset of Atkinson Hyperlegible Next (see `OFL.txt`). |
 | `build.py` | Puts the files of `src/` together into `index.html`. |
 | `tests/run.py` | The test suite (diagram logic, plain-English text rules, contrast, functions, layout at five screen sizes). |
 | `tests/logic.js` | Diagram rules that every sentence must pass (lines do not cross, words do not touch, and so on). |
 | `tests/reed-kellogg-1877.txt` | *Higher Lessons in English* (Reed and Kellogg, 1877), Project Gutenberg text. The source for the diagram rules. |
-| `tools/` | Small helpers: render diagrams to PNG, a quick logic check, a mutation check, a background test run, and `zip-upload.yml` (see below). |
+| `tools/` | Small helpers: render diagrams to PNG, a quick logic check, a mutation check, a background test run, `stamp_version.py` (writes `src/version.txt`), and `zip-upload.yml` (see below). |
 | `PROGRESS.md` | The development log: what was built and checked, step by step. |
 
 ## Change the app
@@ -31,8 +32,11 @@ repository. Nothing else is needed to run the site.
 You need Python 3. Node.js is optional (the build uses it to check the JavaScript syntax).
 
 1. Edit the files in `src/`.
-2. Run `python3 build.py`. It writes `index.html` here and a copy in `dist/` for the tests.
-3. Upload the new `index.html` (and the changed source files) to the repository.
+2. For a new release, run `python3 tools/stamp_version.py`. It writes the current US Eastern time (EST or EDT)
+   to `src/version.txt`, and the Guide page shows it.
+3. Run `python3 build.py`. It writes `index.html` here and a copy in `dist/` for the tests.
+4. Upload the new `index.html` (and the changed source files) to the repository, or upload the whole project as a zip
+   (see below).
 
 ## Update the site by uploading a zip
 

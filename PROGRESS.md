@@ -207,3 +207,11 @@ Lessons 11-21: OC, Appositives, Independent words, Participles(+absolute), Gerun
       source must be "GitHub Actions": GITHUB_TOKEN pushes do not trigger branch Pages builds (GitHub docs).
       Simulated locally with a bare remote (scratchpad/wftest.sh): zip upload, no zip, a flat zip with one folder.
 - [x] README: one-time setup and upload steps; .gitignore: _site/.
+
+## 2026-10-13 VERSION LINE
+- [x] Guide page shows "Version: YYYY-MM-DD HH:MM EST/EDT" (US Eastern). tools/stamp_version.py writes the time to
+      src/version.txt; build.py injects it as APP_VERSION (window.BASELINE.VERSION). The time lives in a file, so the
+      GitHub workflow's rebuild gives the same index.html (no extra commit). Missing file: "development build".
+- [x] Release routine from now on: python3 tools/stamp_version.py -> python3 build.py -> tests -> package (zip has
+      src/version.txt and tools/stamp_version.py).
+- [x] Test: functional suite checks the version format and the line on the guide page.

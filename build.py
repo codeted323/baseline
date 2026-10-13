@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the app: one self-contained index.html (in dist/ for the tests and at the top for GitHub Pages).
 Usage: python3 build.py [output path]"""
-import base64, pathlib, shutil, subprocess, sys
+import base64, json, pathlib, shutil, subprocess, sys
 
 ROOT = pathlib.Path(__file__).parent
 SRC = ROOT / "src"
@@ -71,11 +71,16 @@ def check_js(js):
     r = subprocess.run([node, "-e", "new Function(require('fs').readFileSync(0, 'utf8'))"], input=js, text=True, capture_output=True)
     if r.returncode: sys.exit("JavaScript syntax error:\n" + r.stderr.strip().splitlines()[-1])
 
+def version():
+    """The release time from src/version.txt (tools/stamp_version.py writes it). The Guide page shows it."""
+    f = SRC / "version.txt"
+    return f.read_text(encoding="utf-8").strip() if f.exists() else "development build"
+
 def build(out=None):
     font = base64.b64encode((SRC / "ahn-sub.woff2").read_bytes()).decode()
     css = (SRC / "styles.css").read_text().replace("__FONT__", font)
     js = "\n".join((SRC / f).read_text() for f in ("data.js", "challenges.js", "engine.js", "builder.js", "app.js"))
-    js = "(function () {\n" + js + "\n})();"
+    js = "(function () {\nconst APP_VERSION = " + json.dumps(version()) + ";\n" + js + "\n})();"
     check_js(js)
     html = (TEMPLATE.replace("__CSS__", css).replace("__JS__", js)
             .replace("__MARK__", MARK).replace("__FAV__", FAV))

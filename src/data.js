@@ -1207,6 +1207,7 @@ const UI = {
   keyTitle: 'Line key',
   aboutTitle: 'About these diagrams',
   progressNote: 'This browser keeps your progress.',
+  version: 'Version: {v}',
   reset: 'Reset progress',
   resetConfirm: 'Select again to reset',
   resetDone: 'Your progress is reset.',
